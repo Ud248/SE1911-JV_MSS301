@@ -3,34 +3,51 @@ server:
 spring:
   application:
     name: api-gateway
+  # TODO(auth): re-enable when Keycloak is running. Spring builds the JwtDecoder
+  # from issuer-uri at startup (and the Google provider from its issuer-uri too),
+  # both of which make network calls that block boot if the IdP is unreachable.
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8180/realms/talenthub
+#      client:
+#        registration:
+#          google:
+#            client-id: <YOUR_CLIENT_CLIENT>
+#            client-secret: <YOUR_CLIENT_SECRET>
+#            scope:
+#                - openid
+#                - profile
+#                - email
+#        provider:
+#          google:
+#            issuer-uri: https://accounts.google.com
   cloud:
     gateway:
       server:
         webflux:
           routes:
-            - id: job-service
-              uri: http://localhost:8081
+            - id: public-job
+              uri: lb://job-service
               predicates:
-                - name: Path
+                - Path=/api/v1/public/jobs/**
+            - id: secured-job
+              uri: lb://job-service
+              predicates:
+                - Path=/api/v1/jobs/**
+              filters:
+                - name: RequestRateLimiter
                   args:
-                    pattern: /api/v1/public/jobs/**
-                - name: Header
-                  args:
-                    header: X-Client-Type
-                    regex: Web
-#              filters:
-#                - name: RequestRateLimiter
-#                  args:
-#                    # Số lượng token được nạp lại vào giỏ trong 1 giây (Tốc độ trung bình)
-#                    redis-rate-limiter.replenishRate: 10
-#                    # Sức chứa tối đa của giỏ (Cho phép bùng nổ - Burst trong 1 giây tối đa bao nhiêu)
-#                    redis-rate-limiter.burstCapacity: 20
-#                    # Mỗi request tốn bao nhiêu token
-#                    redis-rate-limiter.requestedTokens: 1
-#                    # SpEL
-
+                    # Số lượng token được nạp lại vào giỏ trong 1 giây (Tốc độ trung bình)
+                    redis-rate-limiter.replenishRate: 10
+                    # Sức chứa tối đa của giỏ (Cho phép bùng nổ - Burst trong 1 giây tối đa bao nhiêu)
+                    redis-rate-limiter.burstCapacity: 20
+                    # Mỗi request tốn bao nhiêu token
+                    redis-rate-limiter.requestedTokens: 1
+                    # SpEL
             - id: candidate-service
-              uri: http://localhost:8082
+              uri: lb://candidate-service
               predicates:
                 - name: Path
                   args:
@@ -40,17 +57,17 @@ spring:
                     header: X-Client-Type
                     regex: Web
             - id: application-service
-              uri: http://localhost:8083
+              uri: lb://application-service
               predicates:
                 - name: Path
                   args:
                     pattern: /api/v1/applications/**
-                - name: Header
-                  args:
-                    header: X-Client-Type
-                    regex: Web
+#                - name: Header
+#                  args:
+#                    header: X-Client-Type
+#                    regex: Web
             - id: notification-service
-              uri: http://localhost:8084
+              uri: lb://notification-service
               predicates:
                 - name: Path
                   args:
@@ -60,7 +77,7 @@ spring:
                     header: X-Client-Type
                     regex: Web
             - id: cv-parser-service
-              uri: http://localhost:8085
+              uri: lb://cv-parser-service
               predicates:
                 - name: Path
                   args:
@@ -69,12 +86,23 @@ spring:
                   args:
                     header: X-Client-Type
                     regex: Web
-  management:
-    endpoints:
-      web:
-        exposure:
-          includes:
-            - health
-            - info
-            - gateway
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-expiration-duration-in-seconds: 30
+    lease-renewal-interval-in-seconds: 10
+    instance-id: ${spring.application.name}:${server.port}
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - gateway
 

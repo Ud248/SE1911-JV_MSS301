@@ -8,6 +8,9 @@ public class GatewayConstraints {
     public static final String HEADER_USER_ID= "X-User-ID";
     public static final String HEADER_EMAIL= "X-User-Email";
     public static final String HEADER_ROLE_NAME= "X-User-Roles";
+    public static final String HEADER_USERNAME= "X-UserName";
+    public static final String HEADER_NAME= "X-Name";
+
 
 
     public static final int ORDER_CORRELATION = -200;

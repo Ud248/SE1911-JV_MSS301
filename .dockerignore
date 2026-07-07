@@ -1,0 +1,8 @@
+# Keep the build context small and fast. These are not needed inside the image.
+**/target
+.git
+.idea
+**/*.iml
+**/.DS_Store
+*.md
+docs

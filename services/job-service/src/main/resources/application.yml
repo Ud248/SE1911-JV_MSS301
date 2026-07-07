@@ -4,13 +4,24 @@ spring:
   application:
     name: job-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/talenthub_job_dbs2
+    url: jdbc:postgresql://job-db:5432/talenthub_job_dbs
     username: dieunt
     password:
   jpa:
     hibernate:
       ddl-auto: update    # dev only, prod đổi qua Flyway
     properties.hibernate.format_sql: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15
+    instance-id: ${spring.application.name}:${server.port}
 management:
   endpoints:
     web:

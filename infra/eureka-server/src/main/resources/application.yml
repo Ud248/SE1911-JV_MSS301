@@ -3,3 +3,20 @@ server:
 spring:
   application:
     name: eureka-server
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    # Eureka Server không cần đăng ký vào chính nó
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    # Tắt self-preservation trong dev — tránh Eureka giữ lại instance chết
+    enable-self-preservation: false
+    # Xóa instance chết nhanh hơn trong dev (mặc định 60s)
+    eviction-interval-timer-in-ms: 5000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env

@@ -1,0 +1,221 @@
+name: talenthub
+
+# All services join Compose's default network automatically and can reach
+# each other by service name (eg "eureka-server", "job-db"). No custom
+# network block is needed for a single-file local setup.
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"          # AMQP protocol port (producer/consumer kết nối qua đây)
+      - "15672:15672"        # Management UI: http://localhost:15672 (talenthub/talenthub)
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_DEFAULT_USER: talenthub
+      RABBITMQ_DEFAULT_PASS: talenthub
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+  # ===== EMAIL SINK (MailHog) =====
+  # MailHog bắt tất cả email gửi qua SMTP port 1025 và hiển thị trên web UI.
+  mailhog:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"          # SMTP port (notification-service gửi email tới đây)
+      - "8025:8025"          # Web UI: http://localhost:8025 (xem email đã gửi)
+    environment:
+      MAILHOG_HOST: mailhog
+  # ===== DATABASE cho Notification Service =====
+  notification-db:
+    image: postgres:16-alpine
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_DB: talenthub_notification_dbs
+      POSTGRES_USER: dieunt
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dieunt -d talenthub_notification_dbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  # ===== DATABASES (one Postgres per service) =====
+  application-db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"          # dev only: open to host so DBeaver can connect; do NOT do this in production
+    environment:
+      POSTGRES_DB: talenthub_application_dbs
+      POSTGRES_USER: dieunt
+      # App connects with an empty password, so allow that with "trust".
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - application-db-data:/var/lib/postgresql/data
+    healthcheck:
+      # User and DB name MUST match the ones above, or the check never passes.
+      test: ["CMD-SHELL", "pg_isready -U dieunt -d talenthub_application_dbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  candidate-db:
+    image: postgres:16-alpine
+    ports:
+      - "5434:5432"          # dev only: open to host so DBeaver can connect; do NOT do this in production
+    environment:
+      POSTGRES_DB: talenthub_candidate_dbs
+      POSTGRES_USER: dieunt
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - candidate-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dieunt -d talenthub_candidate_dbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  job-db:
+    image: postgres:16-alpine
+    ports:
+      - "5435:5432"          # dev only: open to host so DBeaver can connect; do NOT do this in production
+    environment:
+      POSTGRES_DB: talenthub_job_dbs
+      POSTGRES_USER: dieunt
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - job-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dieunt -d talenthub_job_dbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ===== REDIS (used by api-gateway RequestRateLimiter) =====
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ===== KEYCLOAK (Identity Provider) =====
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    # start-dev: chế độ dev (không cần HTTPS). --import-realm: nạp realm từ file lúc khởi động.
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "8180:8080"          # gọi token tại http://localhost:8180/realms/talenthub/...
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin       # tài khoản admin console (dev)
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      # Keycloak đọc mọi file JSON trong thư mục import này lúc start
+      - ./infra/keycloak/talenthub-realm.json:/opt/keycloak/data/import/talenthub-realm.json:ro
+
+  # ===== INFRA =====
+  eureka-server:
+    build:
+      context: .
+      dockerfile: infra/eureka-server/Dockerfile
+    ports:
+      - "8761:8761"          # keep published so you can open the dashboard at http://localhost:8761
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infra/api-gateway/Dockerfile
+    ports:
+      - "8080:8080"          # the only entry point exposed to the outside
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      # Inside Docker, "localhost" is the container itself. Point clients at the
+      # Eureka container by its service name instead.
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      # Redis host for the rate limiter (default would be localhost).
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ===== BUSINESS SERVICES (not published; reached only through the gateway) =====
+  application-service:
+    build:
+      context: .
+      dockerfile: services/application-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      # Feign client to job-service uses an explicit URL; use the container name.
+      CLIENTS_JOB_SERVICE_URL: http://job-service:8081
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      application-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  candidate-service:
+    build:
+      context: .
+      dockerfile: services/candidate-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      candidate-db:
+        condition: service_healthy
+
+  job-service:
+    build:
+      context: .
+      dockerfile: services/job-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      job-db:
+        condition: service_healthy
+  # ===== NOTIFICATION SERVICE =====
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      # Override host cho RabbitMQ, MailHog, DB (trong Docker dùng service name)
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_MAIL_HOST: mailhog
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/talenthub_notification_dbs
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+volumes:
+  application-db-data:
+  candidate-db-data:
+  job-db-data:
+  notification-db-data:

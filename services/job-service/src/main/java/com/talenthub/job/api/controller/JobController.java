@@ -10,6 +10,8 @@ import com.talenthub.job.domain.aggregate.JobAggregate;
 import com.talenthub.job.infrastructure.specification.JobSearchCriteria;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -25,7 +27,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/jobs")
 @RequiredArgsConstructor
+@Slf4j
 public class JobController {
+
+    @Value("${server.port}")
+    private String serverPort;
 
     private final CreateNewJobUseCase createNewJobUseCase;
     private final GetJobByIdUseCase getJobByIdUseCase;
@@ -41,7 +47,8 @@ public class JobController {
     }
 
     @GetMapping("/{id}")
-    public JobResponse getById(@PathVariable UUID id) {
+    public JobResponse getById(@PathVariable("id") UUID id) {
+        log.info("Job service instance with port: {}", serverPort);
         return JobResponse.from(getJobByIdUseCase.execute(id));
     }
 
