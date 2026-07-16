@@ -20,6 +20,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000" # Cổng API cho code Java gọi vào
+      - "9001:9001" # Cổng Web Console UI (trình duyệt)
+    environment:
+      MINIO_ROOT_USER: talenthub_admin
+      MINIO_ROOT_PASSWORD: talenthub_password
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
   # ===== EMAIL SINK (MailHog) =====
   # MailHog bắt tất cả email gửi qua SMTP port 1025 và hiển thị trên web UI.
   mailhog:
@@ -162,6 +173,9 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       # Feign client to job-service uses an explicit URL; use the container name.
       CLIENTS_JOB_SERVICE_URL: http://job-service:8081
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_DEFAULT_USER: talenthub
+      RABBITMQ_DEFAULT_PASS: talenthub
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -177,6 +191,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: talenthub_admin
+      MINIO_SECRET_KEY: talenthub_password
+      MINIO_BUCKET_NAME: cv-uploads
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -190,10 +208,31 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: talenthub
+      SPRING_RABBITMQ_PASSWORD: talenthub
     depends_on:
       eureka-server:
         condition: service_healthy
       job-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  # ===== CV PARSER SERVICE =====
+  cv-parser-service:
+    build:
+      context: .
+      dockerfile: services/cv-parser-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: talenthub
+      SPRING_RABBITMQ_PASSWORD: talenthub
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
   # ===== NOTIFICATION SERVICE =====
   notification-service:
@@ -219,3 +258,4 @@ volumes:
   candidate-db-data:
   job-db-data:
   notification-db-data:
+  minio_data:

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class ApplicationEventPublisher {
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishNotification(ApplicationCreatedEvent event) {
+    public void publishApplicationCreated(ApplicationCreatedEvent event) {
         log.info("Publishing a new message to notification queue, with email={}", event.candidateEmail());
 
         rabbitTemplate.convertAndSend(RabbitMQConstants.EXCHANGE_NAME, RabbitMQConstants.ROUTE_KEY_NAME, event);

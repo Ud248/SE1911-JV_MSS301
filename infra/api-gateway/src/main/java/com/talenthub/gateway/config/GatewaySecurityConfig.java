@@ -19,9 +19,9 @@ public class GatewaySecurityConfig {
         // Spring contacts Keycloak at startup, so the gateway cannot boot without it.
         // For local Docker we permit all traffic and skip the resource server.
         http.csrf(csrfSpec -> csrfSpec.disable())
-                .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll());
-//                .oauth2ResourceServer(oAuth2ResourceServerSpec ->
-//                        oAuth2ResourceServerSpec.jwt((jwtSpec -> jwtSpec.jwtAuthenticationConverter(jwtAuthenticationConverter()))));
+                .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())
+                .oauth2ResourceServer(oAuth2ResourceServerSpec ->
+                        oAuth2ResourceServerSpec.jwt((jwtSpec -> jwtSpec.jwtAuthenticationConverter(jwtAuthenticationConverter()))));
 
         return http.build();
     }

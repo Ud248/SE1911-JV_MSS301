@@ -49,7 +49,6 @@
             <groupId>com.talenthub</groupId>
             <artifactId>common-events</artifactId>
             <version>${project.version}</version>
-
         </dependency>
 
         <dependency>

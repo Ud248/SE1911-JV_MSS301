@@ -1,5 +1,6 @@
 package com.talenthub.application.api.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.talenthub.application.api.dto.AdvanceStageRequest;
 import com.talenthub.application.api.dto.ApplicationResponse;
 import com.talenthub.application.api.dto.SubmitApplicationRequest;
@@ -32,11 +33,11 @@ public class ApplicationController {
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_CANDIDATE')")
-    public ResponseEntity<Map<String, UUID>> submit(@Valid @RequestBody SubmitApplicationRequest req, @AuthenticationPrincipal UserDetail userDetail) {
+    public ResponseEntity<Map<String, UUID>> submit(@Valid @RequestBody SubmitApplicationRequest req, @AuthenticationPrincipal UserDetail userDetail) throws JsonProcessingException {
 
         log.info("User detail={}", userDetail.email());
 
-        UUID applicationId = submitUseCase.execute(new SubmitApplicationCommand(req.candidateId(), req.jobId()));
+        UUID applicationId = submitUseCase.execute(new SubmitApplicationCommand(req.candidateId(), req.jobId(), req.cvFileUrl()));
 
         return ResponseEntity.created(URI.create("/api/v1/applications/" +
                 applicationId)).body(Map.of("id", applicationId, "candidateId", req.candidateId()));

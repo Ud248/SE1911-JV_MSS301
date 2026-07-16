@@ -48,4 +48,30 @@ public class Job extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status;
+
+    @Column(name = "max_applicants", nullable = false, columnDefinition = "integer not null default 100")
+    @Builder.Default
+    private Integer maxApplicants = 100;
+
+    @Column(name = "applicant_count", nullable = false, columnDefinition = "integer not null default 0")
+    @Builder.Default
+    private Integer applicantCount = 0;
+
+    public void incrementApplicantCount() {
+        this.applicantCount++;
+    }
+
+    public void decrementApplicantCount() {
+        if (this.applicantCount > 0) {
+            this.applicantCount--;
+        }
+    }
+
+    public void setMaxApplicants(Integer maxApplicants) {
+        this.maxApplicants = maxApplicants;
+    }
+
+    public void setApplicantCount(Integer applicantCount) {
+        this.applicantCount = applicantCount;
+    }
 }

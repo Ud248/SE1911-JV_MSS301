@@ -15,6 +15,7 @@ public record ApplicationCreatedEvent(
         String candidateEmail,
         String candidateFullName,
         String jobTitle,
+        String cvFileUrl,
 
         // Thời điểm event được tạo (UTC)
         Instant occurredAt
@@ -27,6 +28,7 @@ public record ApplicationCreatedEvent(
                                    @JsonProperty("candidateEmail") String candidateEmail,
                                    @JsonProperty("candidateFullName") String candidateFullName,
                                    @JsonProperty("jobTitle") String jobTitle,
+                                   @JsonProperty("cvFileUrl") String cvFileUrl,
                                    @JsonProperty("occurredAt") Instant occurredAt) {
         this.eventId = eventId;
         this.applicationId = applicationId;
@@ -35,6 +37,7 @@ public record ApplicationCreatedEvent(
         this.candidateEmail = candidateEmail;
         this.candidateFullName = candidateFullName;
         this.jobTitle = jobTitle;
+        this.cvFileUrl = cvFileUrl;
         this.occurredAt = occurredAt;
     }
 }

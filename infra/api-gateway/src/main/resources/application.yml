@@ -6,11 +6,12 @@ spring:
   # TODO(auth): re-enable when Keycloak is running. Spring builds the JwtDecoder
   # from issuer-uri at startup (and the Google provider from its issuer-uri too),
   # both of which make network calls that block boot if the IdP is unreachable.
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: http://localhost:8180/realms/talenthub
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/talenthub
+          jwk-set-uri: http://keycloak:8080/realms/talenthub/protocol/openid-connect/certs
 #      client:
 #        registration:
 #          google:

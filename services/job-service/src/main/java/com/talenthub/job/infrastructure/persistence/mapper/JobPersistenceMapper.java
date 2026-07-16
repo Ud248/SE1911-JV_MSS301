@@ -20,6 +20,8 @@ public final class JobPersistenceMapper {
                 sr != null ? sr.getMax() : null,
                 entity.getDeadline(),
                 JobAggregate.Status.valueOf(entity.getStatus().name()),
+                entity.getMaxApplicants(),
+                entity.getApplicantCount(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }
@@ -32,6 +34,8 @@ public final class JobPersistenceMapper {
                 .salaryRange(new SalaryRange(aggregate.getMinSalary(), aggregate.getMaxSalary()))
                 .deadline(aggregate.getDeadline())
                 .status(Job.Status.valueOf(aggregate.getStatus().name()))
+                .maxApplicants(aggregate.getMaxApplicants())
+                .applicantCount(aggregate.getApplicantCount())
                 .build();
     }
 
@@ -42,5 +46,7 @@ public final class JobPersistenceMapper {
         entity.setSalaryRange(new SalaryRange(aggregate.getMinSalary(), aggregate.getMaxSalary()));
         entity.setDeadline(aggregate.getDeadline());
         entity.setStatus(Job.Status.valueOf(aggregate.getStatus().name()));
+        entity.setMaxApplicants(aggregate.getMaxApplicants());
+        entity.setApplicantCount(aggregate.getApplicantCount());
     }
 }

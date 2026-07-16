@@ -25,6 +25,8 @@ public class JobAggregate {
     private BigDecimal maxSalary;
     private LocalDate deadline;
     private Status status;
+    private Integer maxApplicants;
+    private Integer applicantCount;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -41,12 +43,14 @@ public class JobAggregate {
         job.maxSalary = maxSalary;
         job.deadline = deadline;
         job.status = Status.DRAFT;
+        job.maxApplicants = 100;
+        job.applicantCount = 0;
         return job;
     }
 
     public static JobAggregate reconstitute(UUID id, String title, String description, UUID departmentId,
                                             BigDecimal minSalary, BigDecimal maxSalary, LocalDate deadline,
-                                            Status status, Instant createdAt, Instant updatedAt) {
+                                            Status status, Integer maxApplicants, Integer applicantCount, Instant createdAt, Instant updatedAt) {
         JobAggregate job = new JobAggregate();
         job.id = id;
         job.title = title;
@@ -56,6 +60,8 @@ public class JobAggregate {
         job.maxSalary = maxSalary;
         job.deadline = deadline;
         job.status = status;
+        job.maxApplicants = maxApplicants;
+        job.applicantCount = applicantCount;
         job.createdAt = createdAt;
         job.updatedAt = updatedAt;
         return job;
@@ -103,6 +109,16 @@ public class JobAggregate {
             throw new IllegalStateException("Job is already CLOSED");
         }
         this.status = Status.CLOSED;
+    }
+
+    public void incrementApplicantCount() {
+        this.applicantCount++;
+    }
+
+    public void decrementApplicantCount() {
+        if (this.applicantCount > 0) {
+            this.applicantCount--;
+        }
     }
 
     private static void validateSalary(BigDecimal min, BigDecimal max) {

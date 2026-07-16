@@ -14,7 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -43,8 +45,7 @@ public class CandidateController {
     @GetMapping(ApiPaths.CANDIDATE_BY_ID)
     public CandidateResponse getById(@PathVariable UUID id) {
         log.debug("getById called with id={} at port={}", id, portServer);
-        return
-                CandidateResponse.from(getUseCase.execute(id));
+        return CandidateResponse.from(getUseCase.execute(id));
     }
 
     @GetMapping
@@ -55,16 +56,15 @@ public class CandidateController {
     @PutMapping(ApiPaths.CONTACT)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateContact(@PathVariable UUID id,
-                              @Valid @RequestBody UpdateContactRequest req) {
+            @Valid @RequestBody UpdateContactRequest req) {
         updateContactUseCase.execute(
                 new UpdateContactCommand(id, req.email(), req.phone(), req.address()));
     }
 
     @PostMapping(ApiPaths.CV)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void attachCv(@PathVariable UUID id,
-                         @Valid @RequestBody AttachCvRequest req) {
-        attachCvUseCase.execute(new AttachCvCommand(id, req.fileUrl(), req.sizeBytes()));
+    public String attachCv(@PathVariable("id") String id, @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("file") MultipartFile file) {
+        return attachCvUseCase.execute(new AttachCvCommand(UUID.fromString(id), file));
     }
 
     @DeleteMapping(ApiPaths.CANDIDATE_BY_ID)

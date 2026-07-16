@@ -10,9 +10,8 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: 5672
-    stream:
-      username: talenthub
-      password: talenthub
+    username: ${RABBITMQ_DEFAULT_USER:talenthub}
+    password: ${RABBITMQ_DEFAULT_PASS:talenthub}
   jpa:
     hibernate:
       ddl-auto: update    # dev only, prod đổi qua Flyway
@@ -51,6 +50,11 @@ eureka:
     lease-expiration-duration-in-seconds: 30 # Expiry sau 30s không có heartbeat
     lease-renewal-interval-in-seconds: 10 # Heartbeat mỗi 10s (dev)
     instance-id: ${spring.application.name}:${server.port}
+minio:
+  url: http://localhost:9000
+  access-key: talenthub_admin
+  secret-key: talenthub_password
+  bucket-name: cv-uploads
 management:
   endpoints:
     web:

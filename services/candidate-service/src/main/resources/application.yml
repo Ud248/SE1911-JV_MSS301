@@ -11,6 +11,11 @@ spring:
     hibernate:
       ddl-auto: update    # dev only, prod đổi qua Flyway
     properties.hibernate.format_sql: true
+minio:
+  url: ${MINIO_URL:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:talenthub_admin}
+  secret-key: ${MINIO_SECRET_KEY:talenthub_password}
+  bucket-name: ${MINIO_BUCKET_NAME:cv-uploads}
 eureka:
   client:
     service-url:
